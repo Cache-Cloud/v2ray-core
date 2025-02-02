@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"go/build"
 	"io"
@@ -92,7 +93,7 @@ Command "%s" not found.
 Make sure that %s is in your system path or current path.
 Download %s v%s or later from https://github.com/protocolbuffers/protobuf/releases
 `, protoc, protoc, protoc, targetedVersion)
-		return "", fmt.Errorf(errStr)
+		return "", fmt.Errorf("%v", errStr)
 	}
 	return path, nil
 }
@@ -121,7 +122,17 @@ func getInstalledProtocVersion(protocPath string) (string, error) {
 	}
 	versionRegexp := regexp.MustCompile(`protoc\s*(\d+\.\d+(\.\d)*)`)
 	matched := versionRegexp.FindStringSubmatch(string(output))
-	return matched[1], nil
+	installedVersion := ""
+	if len(matched) == 0 {
+		return "", errors.New("can not parse protoc version")
+	}
+
+	if len(matched) == 2 {
+		installedVersion += "4." // in contrast to getProjectProtocVersion()
+	}
+	installedVersion += matched[1]
+	fmt.Println("Using protoc version: " + installedVersion)
+	return installedVersion, nil
 }
 
 func parseVersion(s string, width int) int64 {
